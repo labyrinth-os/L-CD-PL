@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+
+    environment {
+        DEPLOY_HOST = 'YOUR_EC2_PUBLIC_IP'
+    }
+
+    stages {
+        stage('Build and Test') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Deploy to Cloud') {
+            steps {
+                sshagent(['ec2-ssh-key']) {
+                    sh '''
+                    mkdir -p ~/.ssh
+                    ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+                    ssh ubuntu@$DEPLOY_HOST \
+                      'mkdir -p ~/app'
+
+                    scp target/f1worker-1.0.jar \
+                      ubuntu@$DEPLOY_HOST:app/
+
+                    ssh ubuntu@$DEPLOY_HOST \
+                      'nohup java -jar ~/app/f1worker-1.0.jar > ~/app/app.log 2>&1 < /dev/null &'
+                    '''
+                }
+            }
+        }
+    }
+}
