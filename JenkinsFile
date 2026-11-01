@@ -4,7 +4,7 @@ pipeline {
     environment {
         DEPLOY_HOST = '192.168.0.23'
         // Ensure you have created a "Username with password" credential in Jenkins with this ID
-        SSH_CRED_ID = 'ssh-password-login' 
+        SSH_CRED_ID = 'ec2-ssh-key' 
     }
 
     stages {
