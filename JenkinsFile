@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_HOST = '192.168.0.22'
+        DEPLOY_HOST = '192.168.0.23'
     }
 
     stages {
