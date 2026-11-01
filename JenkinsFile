@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         DEPLOY_HOST = '192.168.0.23'
+        // Ensure you have created a "Username with password" credential in Jenkins with this ID
+        SSH_CRED_ID = 'ssh-password-login' 
     }
 
     stages {
@@ -14,19 +16,22 @@ pipeline {
 
         stage('Deploy to Cloud') {
             steps {
-                sshagent(['ec2-ssh-key']) {
+                // Use usernamePassword credentials binding instead of sshagent
+                withCredentials([usernamePassword(credentialsId: "${SSH_CRED_ID}", usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS')]) {
                     sh '''
+                    # 1. Ensure the directory exists and scan the host key to avoid interactive prompts
                     mkdir -p ~/.ssh
                     ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
-                    ssh decoder-linux@$DEPLOY_HOST \
-                      'mkdir -p ~/app'
+                    # 2. Create the application directory on the remote server
+                    sshpass -p "$SSH_PASS" ssh $SSH_USER@$DEPLOY_HOST 'mkdir -p ~/app'
 
-                    scp target/f1worker-1.0.jar \
-                      decoder-linux@$DEPLOY_HOST:app/
+                    # 3. Copy the jar file using scp
+                    sshpass -p "$SSH_PASS" scp target/f1worker-1.0.jar $SSH_USER@$DEPLOY_HOST:app/
 
-                    ssh decoder-linux@$DEPLOY_HOST \
-                      'nohup java -jar ~/app/f1worker-1.0.jar > ~/app/app.log 2>&1 < /dev/null &'
+                    # 4. Start the application in the background
+                    sshpass -p "$SSH_PASS" ssh $SSH_USER@$DEPLOY_HOST \
+                      "nohup java -jar ~/app/f1worker-1.0.jar > ~/app/app.log 2>&1 < /dev/null &"
                     '''
                 }
             }
